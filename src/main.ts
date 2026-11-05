@@ -8,24 +8,33 @@ import { PenbookView, VIEW_TYPE } from './view';
 import { icon, registerIcons } from './icons';
 import { installTooltips } from './tooltips';
 import { SHORTCUTS, shortcutHint } from './shortcuts';
+import { resolveFolders } from './folders';
 import { SelectionClipboard } from './selection-clipboard';
 
 export interface Preferences {
   folder:string; paper:Paper; penColor:string; penWidth:number; pressure:number; fingerInk:boolean;
-  leftHanded:boolean; toolbarBottom:boolean; exportScale:number; eraser:'stroke'|'pixel';
+  leftHanded:boolean; toolbarBottom:boolean; exportFolder:string; templateFolder:string; exportScale:number; eraser:'stroke'|'pixel';
   customColors:string[];presetColors:string[];
   colorHistory:string[]; inkProfiles:Partial<Record<Pen,InkProfile>>; eraserPrecision:'fine'|'standard'; eraserOnly:'all'|'highlighter'|'tape'; eraserAutoPrevious:boolean;
   penEnabled:boolean; scrollDirection:'vertical'|'horizontal'; showResolved:boolean;
 }
-export const DEFAULTS:Preferences={folder:'Handwritten Notes',paper:'ruled',penColor:'#000000',penWidth:3,pressure:1,fingerInk:false,leftHanded:false,toolbarBottom:false,exportScale:1.5,eraser:'stroke',customColors:[],presetColors:PRESET_COLORS,colorHistory:[],inkProfiles:{},eraserPrecision:'standard',eraserOnly:'all',eraserAutoPrevious:false,penEnabled:true,scrollDirection:'vertical',showResolved:false};
+export const DEFAULTS:Preferences={folder:'',paper:'ruled',penColor:'#000000',penWidth:3,pressure:1,fingerInk:false,leftHanded:false,toolbarBottom:false,exportFolder:'',templateFolder:'',exportScale:1.5,eraser:'stroke',customColors:[],presetColors:PRESET_COLORS,colorHistory:[],inkProfiles:{},eraserPrecision:'standard',eraserOnly:'all',eraserAutoPrevious:false,penEnabled:true,scrollDirection:'vertical',showResolved:false};
 
 export default class PenbookPlugin extends Plugin {
   settings:Preferences={...DEFAULTS};
   selectionClipboard:SelectionClipboard|null=null;
+  /** New installs get localized folder names; vaults that already use the original Chinese folders keep them. */
+  private async initFolders(saved:Partial<Preferences>){
+    const {settings,changed}=await resolveFolders(saved,path=>this.app.vault.adapter.exists(normalizePath(path)),{folder:t('default_folder'),exportFolder:t('export_subfolder'),templateFolder:t('template_subfolder')});
+    Object.assign(this.settings,settings);
+    if(changed)await this.saveSettings();
+  }
   async onload(){
     registerIcons();
     this.register(installTooltips());
-    this.settings={...DEFAULTS,...await this.loadData()};
+    const saved=(await this.loadData()??{}) as Partial<Preferences>;
+    this.settings={...DEFAULTS,...saved};
+    await this.initFolders(saved);
     this.settings.presetColors=[...new Set([...this.settings.presetColors,...this.settings.customColors])];this.settings.inkProfiles={...this.settings.inkProfiles};this.settings.colorHistory=[...this.settings.colorHistory];
     this.registerView(VIEW_TYPE,leaf=>new PenbookView(leaf,this));this.registerExtensions(['penbook'],VIEW_TYPE);
     this.addRibbonIcon('pb-pen',t('new_handwriting_notebook'),()=>void this.createNotebook());
@@ -62,7 +71,7 @@ export default class PenbookPlugin extends Plugin {
   async folder(path:string){const p=normalizePath(path);if(p&&p!== '/'&&!await this.app.vault.adapter.exists(p))await this.app.vault.createFolder(p);return p==='/'?'':p;}
   async unique(path:string){let p=normalizePath(path),i=1;const dot=p.lastIndexOf('.');while(await this.app.vault.adapter.exists(p)){p=`${path.slice(0,dot)} ${i++}${path.slice(dot)}`;}return p;}
   async writeBinary(name:string,bytes:Uint8Array){
-    const base=await this.folder(`${this.settings.folder}/Exports`),path=await this.unique(`${base}/${name}`);
+    const base=await this.folder(`${this.settings.folder}/${this.settings.exportFolder}`),path=await this.unique(`${base}/${name}`);
     const data=new Uint8Array(bytes).buffer;await this.app.vault.createBinary(path,data);new Notice(t('saved_n',[path]));return path;
   }
   async createNotebook(title?:string,book?:Notebook){
@@ -91,7 +100,9 @@ class Library extends Modal {
 class PenbookSettings extends PluginSettingTab {
   constructor(private plugin:PenbookPlugin){super(plugin.app,plugin);}
   display(){const el=this.containerEl;el.empty();new Setting(el).setName(t('penbook_handwriting')).setHeading();
-    new Setting(el).setName(t('new_notebook_folder')).addText(x=>x.setValue(this.plugin.settings.folder).onChange(async v=>{this.plugin.settings.folder=normalizePath(v||'Handwritten Notes');await this.plugin.saveSettings();}));
+    new Setting(el).setName(t('new_notebook_folder')).setDesc(t('folder_desc')).addText(x=>x.setValue(this.plugin.settings.folder).onChange(async v=>{this.plugin.settings.folder=normalizePath(v||t('default_folder'));await this.plugin.saveSettings();}));
+    new Setting(el).setName(t('export_folder_name')).setDesc(t('export_folder_desc')).addText(x=>x.setValue(this.plugin.settings.exportFolder).onChange(async v=>{this.plugin.settings.exportFolder=normalizePath(v||t('export_subfolder'));await this.plugin.saveSettings();}));
+    new Setting(el).setName(t('template_folder_name')).setDesc(t('template_folder_desc')).addText(x=>x.setValue(this.plugin.settings.templateFolder).onChange(async v=>{this.plugin.settings.templateFolder=normalizePath(v||t('template_subfolder'));await this.plugin.saveSettings();}));
     new Setting(el).setName(t('default_paper')).addDropdown(d=>d.addOptions(PAPERS()).setValue(this.plugin.settings.paper).onChange(async v=>{this.plugin.settings.paper=v as Paper;await this.plugin.saveSettings();}));
     new Setting(el).setName(t('default_ink_color')).addColorPicker(c=>c.setValue(this.plugin.settings.penColor).onChange(async v=>{this.plugin.settings.penColor=v;await this.plugin.saveSettings();}));
     new Setting(el).setName(t('default_pen_width')).addSlider(s=>s.setLimits(1,20,1).setValue(this.plugin.settings.penWidth).setDynamicTooltip().onChange(async v=>{this.plugin.settings.penWidth=v;await this.plugin.saveSettings();}));
