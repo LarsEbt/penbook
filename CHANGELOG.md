@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- Add a language switch (Settings → Penbook → Language): Auto (follows Obsidian), English, Deutsch. It applies immediately to open notebooks, the toolbar, command names and the settings tab.
+- English is now the source language of the code and the UI. The previous Chinese interface strings were removed; anything that is not German falls back to English.
+- Add separate export and template subfolder settings. Vaults that already use the original Chinese default folders keep them; only new installs get localized default folder names.
+- Notebook files and the `.penbook` format are unchanged.
+- Add unit tests (`npm test`), a CI workflow, and `npm run deploy` to copy a build into a vault.
+
 ## 0.3.1
 
 - Use Obsidian's settings heading and CSS APIs to satisfy current community review checks.

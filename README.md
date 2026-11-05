@@ -62,6 +62,12 @@ Default shortcuts include `P` for pen, `E` for eraser, `L` for lasso, `H` for ha
 - PDF export range and annotation/background options, PNG, SVG with vector strokes, shapes, text, tables, and tape, original-file copies, and Markdown indexes. Images and page backgrounds retain their image representation in SVG.
 - No external APIs, CDNs, or online recognition services. The PDF parser, character maps, standard fonts, and WASM resources ship with the plugin.
 
+## Language
+
+The interface is available in English (source language) and German. Choose a language under Settings → Penbook → Language, or leave it on *Auto* to follow Obsidian (anything other than German uses English).
+
+To add a language: copy `src/i18n/en.ts` to `src/i18n/<code>.ts` and translate the values (keep the keys and `{0}` placeholders), register it in `src/i18n/index.ts` and the language dropdown in `src/main.ts`, then run `npm test`. Missing keys fall back to English.
+
 ## Build and install
 
 ```sh
@@ -71,6 +77,15 @@ npm run package
 ```
 
 The built plugin is written to `release/penbook/`. Copy the entire folder into your vault at `.obsidian/plugins/penbook/`, including the `cmaps/`, `standard_fonts/`, and `wasm/` subdirectories, then enable Penbook in Obsidian. You can also copy the plugin and notebooks to an Android vault.
+
+### Development
+
+```sh
+npm test                                        # unit tests (dictionaries, icons, folder defaults, source scan)
+PENBOOK_VAULT="$HOME/Obsidian/MyVault" npm run deploy   # build and copy into a vault; keeps the vault's settings
+```
+
+After deploying, reload the plugin in Obsidian (Settings → Community plugins) or run "Reload app without saving". If the vault is synced, the new build reaches your other devices through the sync.
 
 ## File format and recovery
 
