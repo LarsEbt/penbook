@@ -1,10 +1,11 @@
+import { t } from './i18n';
 import { Notebook, Page, clone, uid } from './model';
 
 export function copyPages(pages:Page[],source:Notebook,target:Notebook,pageUrl?:(id:string)=>string):Page[]{
   const ids=new Map(pages.map(p=>[p.id,uid()])),resources=new Map<string,string>(),groups=new Map<string,string>();
   const resource=(key:string)=>{
     if(resources.has(key))return resources.get(key)!;
-    const value=source.resources[key];if(!value)throw new Error('页面资源缺失');
+    const value=source.resources[key];if(!value)throw new Error(t('page_resource_missing'));
     const existing=Object.entries(target.resources).find(([,r])=>r===value||r.type===value.type&&r.data===value.data);
     const id=existing?.[0]??uid();target.resources[id]=value;resources.set(key,id);return id;
   };

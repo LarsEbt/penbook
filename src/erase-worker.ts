@@ -10,9 +10,9 @@ scope.onmessage=({data:job})=>{
     if(session!==job.session){sources.clear();session=job.session;}
     const changes:EraseResult['changes']=[];
     for(const input of job.items){
-      const id=input.id??input.item?.id;if(!id)throw new Error('缺少笔迹标识');
+      const id=input.id??input.item?.id;if(!id)throw new Error('Missing stroke ID');
       if(input.item&&input.outline)sources.set(id,{item:input.item,outline:input.outline});
-      const source=sources.get(id);if(!source)throw new Error('擦除缓存已失效');const {item,outline}=source;
+      const source=sources.get(id);if(!source)throw new Error('Erase cache is no longer valid');const {item,outline}=source;
       if(job.split){changes.push({id:item.id,items:splitErasedStroke(item,outline).map(item=>({item,clip:erasureClipPath(item)}))});continue;}
       let changed=false,removed=false;
       for(const {from,to} of job.segments){

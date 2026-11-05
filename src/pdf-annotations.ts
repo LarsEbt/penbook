@@ -1,3 +1,4 @@
+import { t } from './i18n';
 import { PDFDocument, PDFPage, PDFName, PDFHexString, PDFString, PDFRef } from 'pdf-lib';
 import { Item, Page, Notebook } from './model';
 import { Renderer } from './render';
@@ -57,7 +58,7 @@ export async function addObjectAnnotation(out:PDFDocument,target:PDFPage,page:Pa
     const screen=[world(o,-pad,-pad),world(o,o.bw+pad,-pad),world(o,o.bw+pad,o.bh+pad),world(o,-pad,o.bh+pad)],sx=Math.min(...screen.map(p=>p[0])),sy=Math.min(...screen.map(p=>p[1])),sw=Math.max(...screen.map(p=>p[0]))-sx,sh=Math.max(...screen.map(p=>p[1]))-sy,scale=Math.min(1.5,Math.sqrt(1_000_000/(sw*sh)));
     const canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.ceil(sw*scale));canvas.height=Math.max(1,Math.ceil(sh*scale));
     try{const ctx=canvas.getContext('2d')!;ctx.scale(scale,scale);ctx.translate(-sx,-sy);renderer.draw(ctx,o,o.resource?await renderer.image(o.resource,book):undefined);
-      const blob=await new Promise<Blob>((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error('无法编码批注')),'image/png')),image=await out.embedPng(await blob.arrayBuffer());
+      const blob=await new Promise<Blob>((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error(t('cannot_encode_annotation'))),'image/png')),image=await out.embedPng(await blob.arrayBuffer());
       const origin=map(sx,sy+sh),right=map(sx+sw,sy+sh),top=map(sx,sy),m=[right[0]-origin[0],right[1]-origin[1],top[0]-origin[0],top[1]-origin[1],...origin];resources={XObject:{Image:image.ref}};stream=`q ${m.map(number).join(' ')} cm /Image Do Q`;
     }finally{canvas.width=canvas.height=1;}
   }

@@ -52,10 +52,10 @@ export function eraseStroke(o:Item,point:Point,radius:number,standard:boolean,wh
   // Store only ink that still exists, never a growing mask outside the ink.
   o.frozenInk=remaining.flat();o.eraseMasks=undefined;
   cached.visible=remaining;cached.ink=remaining;cached.masks=undefined;cached.frozen=o.frozenInk;return false;
-  }catch(error){if(!geometryWarningShown){geometryWarningShown=true;console.warn('Penbook: 跳过了一个无法稳定处理的擦除区域。',error);}return false;}
+  }catch(error){if(!geometryWarningShown){geometryWarningShown=true;console.warn('Penbook: skipped an erase region that could not be processed reliably.',error);}return false;}
 }
 
-export function erasureClipPath(o:Item){const path=(rings:Pair[][])=>rings.map(ring=>ring.map((p,i)=>`${i?'L':'M'}${p[0]},${p[1]}`).join(' ')+'Z').join(' ');try{if(o.frozenInk){if(!o.eraseMasks?.length)return path(o.frozenInk);const ink=frozenGeometry(o.frozenInk);return path((o.eraseMasks?.length?difference(ink,o.eraseMasks):ink).flat());}const pad=(o.width??3)*8+32;return `M${-pad},${-pad}H${o.bw+pad}V${o.bh+pad}H${-pad}Z `+path((o.eraseMasks??[]).flat());}catch(error){if(!geometryWarningShown){geometryWarningShown=true;console.warn('Penbook: 暂时显示完整笔迹，无法绘制擦除裁剪区域。',error);}const pad=(o.width??3)*8+32;return `M${-pad},${-pad}H${o.bw+pad}V${o.bh+pad}H${-pad}Z`;}}
+export function erasureClipPath(o:Item){const path=(rings:Pair[][])=>rings.map(ring=>ring.map((p,i)=>`${i?'L':'M'}${p[0]},${p[1]}`).join(' ')+'Z').join(' ');try{if(o.frozenInk){if(!o.eraseMasks?.length)return path(o.frozenInk);const ink=frozenGeometry(o.frozenInk);return path((o.eraseMasks?.length?difference(ink,o.eraseMasks):ink).flat());}const pad=(o.width??3)*8+32;return `M${-pad},${-pad}H${o.bw+pad}V${o.bh+pad}H${-pad}Z `+path((o.eraseMasks??[]).flat());}catch(error){if(!geometryWarningShown){geometryWarningShown=true;console.warn('Penbook: showing the full stroke for now; the erase clip region could not be drawn.',error);}const pad=(o.width??3)*8+32;return `M${-pad},${-pad}H${o.bw+pad}V${o.bh+pad}H${-pad}Z`;}}
 
 /** Split connected remnants while retaining the original outline and cut edge geometry. */
 export function splitErasedStroke(o:Item,outline:number[][]):Item[]{
@@ -71,5 +71,5 @@ export function splitErasedStroke(o:Item,outline:number[][]):Item[]{
     const shifted=polygon.map(ring=>ring.map(p=>[p[0]-left,p[1]-top] as Pair));
     return{...o,id:uid(),group:undefined,x:o.x+o.w/2+dx*cos-dy*sin-w/2,y:o.y+o.h/2+dx*sin+dy*cos-h/2,w,h,bw,bh,points:o.points?.map(p=>[p[0]-left,p[1]-top,p[2]] as Point),pdfMarkup:o.pdfMarkup?{...o.pdfMarkup,quadPoints:o.pdfMarkup.quadPoints?.map(p=>[p[0]-left,p[1]-top,p[2]] as Point)}:undefined,frozenInk:shifted,eraseMasks:undefined};
   });
-  }catch(error){if(!geometryWarningShown){geometryWarningShown=true;console.warn('Penbook: 保留笔迹，未能完成断开分段。',error);}return[o];}
+  }catch(error){if(!geometryWarningShown){geometryWarningShown=true;console.warn('Penbook: kept the stroke; splitting it into segments failed.',error);}return[o];}
 }

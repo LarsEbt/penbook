@@ -1,10 +1,11 @@
+import { t } from './i18n';
 import { Setting } from 'obsidian';
 import { icon, pathIcon, IconName, UI_ICONS } from './icons';
 
 export function panelHeader(parent:HTMLElement,title:string,close?:()=>void,back?:()=>void){
   const header=parent.createDiv('pb-panel-header');
-  if(back)panelIcon(header,'previous','返回',back);
-  header.createEl('h3',{text:title});if(close){const b=header.createEl('button',{cls:'pb-panel-icon',attr:{title:'关闭','aria-label':'关闭'}});pathIcon(b,UI_ICONS.close);b.onclick=close;}
+  if(back)panelIcon(header,'previous',t('back'),back);
+  header.createEl('h3',{text:title});if(close){const b=header.createEl('button',{cls:'pb-panel-icon',attr:{title:t('close'),'aria-label':t('close')}});pathIcon(b,UI_ICONS.close);b.onclick=close;}
   return header;
 }
 export function panelIcon(parent:HTMLElement,name:IconName,title:string,click:()=>void){const b=parent.createEl('button',{cls:'pb-panel-icon',attr:{title,'aria-label':title}});icon(b,name);b.onclick=click;return b;}

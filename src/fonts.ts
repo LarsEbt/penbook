@@ -1,6 +1,7 @@
+import { t } from './i18n';
 import { Platform } from 'obsidian';
 
-const GENERIC:Record<string,string>={'sans-serif':'系统无衬线','serif':'系统衬线','monospace':'系统等宽'};
+const generic=():Record<string,string>=>({'sans-serif':t('system_sans_serif'),'serif':t('system_serif'),'monospace':t('system_monospace')});
 let fontFamilies:Promise<string[]>|undefined;
 
 /** Read installed families locally; no font files or metadata leave the device. */
@@ -29,14 +30,14 @@ function installedFonts():Promise<string[]> {
 }
 
 export async function fontOptions(current:string):Promise<Record<string,string>> {
-  const options={...GENERIC};for(const family of await installedFonts())options[JSON.stringify(family)]=family;
+  const options={...generic()};for(const family of await installedFonts())options[JSON.stringify(family)]=family;
   if(!(current in options))options[current]=current.replace(/^"|"$/g,'');return options;
 }
 
 export function fontSelect(parent:HTMLElement,current:string,change:(font:string)=>void){
-  const select=parent.createEl('select',{cls:'pb-font-select',attr:{'aria-label':'字体',title:'字体'}});
+  const select=parent.createEl('select',{cls:'pb-font-select',attr:{'aria-label':t('font'),title:t('font')}});
   const fill=(options:Record<string,string>)=>{if(!select.isConnected)return;select.empty();for(const[value,label]of Object.entries(options))select.createEl('option',{value,text:label});select.value=current;};
-  fill({...GENERIC,[current]:GENERIC[current]??current.replace(/^"|"$/g,'')});
+  fill({...generic(),[current]:generic()[current]??current.replace(/^"|"$/g,'')});
   select.onchange=()=>{current=select.value;select.style.fontFamily=current;change(current);};
   void fontOptions(current).then(fill);return select;
 }

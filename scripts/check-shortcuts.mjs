@@ -3,7 +3,7 @@ import {readFile} from 'node:fs/promises';
 import {build} from 'esbuild';
 // Exercise the actual view methods with only the desktop UI dependencies stubbed.
 const source=(await readFile('src/view.ts','utf8')).replace(/^import .*;\n/gm,'');
-const built=await build({stdin:{contents:`import {SHORTCUTS,EDIT_ACTIONS,SELECTION_ACTIONS,shortcutAction,shortcutHint} from './src/shortcuts';import {pageAtOffset} from './src/page-navigation';import {newBook,newPage,item,clone,uid} from './src/model';import {selectionClipboard,pasteItems} from './src/selection-clipboard';const TextFileView=class{},Notice=class{};${source}\nexport {SHORTCUTS,shortcutAction,pageAtOffset};`,loader:'ts',resolveDir:process.cwd()},bundle:true,write:false,format:'esm',platform:'node'});
+const built=await build({stdin:{contents:`import {SHORTCUTS,EDIT_ACTIONS,SELECTION_ACTIONS,shortcutAction,shortcutHint} from './src/shortcuts';import {pageAtOffset} from './src/page-navigation';import {newBook,newPage,item,clone,uid} from './src/model';import {selectionClipboard,pasteItems} from './src/selection-clipboard';import {t,zhOf,zhText} from './src/i18n';const TextFileView=class{},Notice=class{};${source}\nexport {SHORTCUTS,shortcutAction,pageAtOffset};`,loader:'ts',resolveDir:process.cwd()},bundle:true,write:false,format:'esm',platform:'node'});
 const {PenbookView,SHORTCUTS,shortcutAction,pageAtOffset}=await import('data:text/javascript;base64,'+Buffer.from(built.outputFiles[0].text).toString('base64'));
 globalThis.document={activeElement:null};
 globalThis.Element=class{constructor(editing=false){this.editing=editing;}closest(){return this.editing?this:null;}};

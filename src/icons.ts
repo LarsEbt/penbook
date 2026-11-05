@@ -1,3 +1,4 @@
+import { enOf } from './i18n';
 import { addIcon } from 'obsidian';
 import penNibSvg from '@phosphor-icons/core/assets/regular/pen-nib.svg';
 import eraserSvg from '@phosphor-icons/core/assets/regular/eraser.svg';
@@ -154,13 +155,14 @@ export function pathIcon(el:HTMLElement,pathData:string,size=20){const svg=docum
 export function registerIcons(){for(const[name,path]of Object.entries(ICONS))addIcon(`pb-${name}`,`<g transform="scale(0.390625)"><path fill="currentColor" stroke="none" d="${path}"/></g>`);}
 export function icon(el:HTMLElement,name:IconName,size=20){return pathIcon(el,ICONS[name],size);}
 export function dropdownIcon(el:HTMLElement){return pathIcon(el,down,18);}
-export function actionIcon(title:string):IconName{
-  if(title==='移动或复制选区到其他页')return 'move';
-  const exact:Record<string,IconName>={'钢笔':'pen','橡皮擦':'eraser','套索选择':'lasso','形状':'shape','文本框':'text','便签':'sticky','链接':'link','表格':'table','平移':'hand','显示或隐藏页面列表':'sidebar','沉浸模式':'fullscreen','笔记本与页面选项':'more','上一页':'previous','下一页':'next','缩小':'minus','放大':'plus','适合宽度':'fit','移到顶层':'front','移到底层':'back','取消组合':'ungroup'};
+/** Pick a toolbar/menu icon from a label. Rules match the English text; translated labels are mapped back first. */
+export function actionIcon(label:string):IconName{
+  const title=enOf(label),lower=title.toLowerCase();
+  if(title==='Move or copy selection to another page')return 'move';
+  const exact:Record<string,IconName>={'Fountain pen':'pen','Eraser':'eraser','Lasso':'lasso','Shape':'shape','Text box':'text','Sticky':'sticky','Link':'link','Table':'table','Pan':'hand','Show or hide page list':'sidebar','Immersive mode':'fullscreen','Notebook and page options':'more','Previous page':'previous','Next page':'next','Zoom out':'minus','Zoom in':'plus','Fit width':'fit','Bring to front':'front','Send to back':'back','Ungroup selection':'ungroup'};
   if(exact[title])return exact[title];
-  if(title.startsWith('删除'))return 'delete';
-  if(title==='更多书写工具')return 'more';
-  if(title==='切换阅读与书写')return 'read';
-  for(const [text,name]of [['撤销','undo'],['重做','redo'],['导入','import'],['导出','export'],['阅读','read'],['插入页面','plus'],['添加页面','plus'],['复制','copy'],['粘贴','paste'],['删除','delete'],['颜色','palette'],['旋转','rotate'],['解锁','unlock'],['锁定','lock'],['组合','group'],['编辑','edit'],['裁剪','crop'],['移动','move'],['打印','print'],['PDF','pdf'],['图片','image'],['书签','bookmark'],['索引','file'],['搜索','search']]as [string,IconName][])if(title.includes(text))return name;
+  if(title.startsWith('Delete'))return 'delete';
+  // Matching ignores case. Order matters: the first match wins ("Unlock" before "Lock", "Duplicate" is a copy).
+  for(const [text,name]of [['Undo','undo'],['Redo','redo'],['Import','import'],['Export','export'],['Read','read'],['Insert page','plus'],['Add page','plus'],['Copy','copy'],['Duplicate','copy'],['Paste','paste'],['Delete','delete'],['Color','palette'],['Rotate','rotate'],['Unlock','unlock'],['Lock','lock'],['Group','group'],['Edit','edit'],['Crop','crop'],['Move','move'],['Print','print'],['PDF','pdf'],['Image','image'],['Bookmark','bookmark'],['Index','file'],['Search','search']]as [string,IconName][])if(lower.includes(text.toLowerCase()))return name;
   return 'settings';
 }

@@ -1,3 +1,4 @@
+import { t } from './i18n';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { Item, Notebook, encode, item, localPoint, uid } from './model';
 
@@ -16,6 +17,6 @@ export async function nativePreview(a:any,page:pdfjs.PDFPageProxy,key:string,boo
     if(indices.size&&[...indices].some(i=>list.fnArray[i]===pdfjs.OPS.beginAnnotation))await page.render({canvas,canvasContext:ctx,viewport:vp,transform:[scale,0,0,scale,-x*scale,-y*scale],background:'rgba(0,0,0,0)',operationsFilter:i=>indices.has(i)}).promise;
     else if(a.subtype==='FreeText'){ctx.scale(scale,scale);const color=a.defaultAppearanceData?.fontColor??[0,0,0],size=a.defaultAppearanceData?.fontSize||16;ctx.fillStyle=`rgb(${Array.from(color).join(',')})`;ctx.font=`${size}px sans-serif`;ctx.textBaseline='top';String(o.text).split('\n').forEach((line,i)=>ctx.fillText(line,0,i*size*1.2,w));}
     else{ctx.scale(scale,scale);ctx.fillStyle='#f4e4a0';ctx.fillRect(0,0,w,h);ctx.strokeStyle='#887133';ctx.lineWidth=Math.min(2,w/8,h/8);ctx.strokeRect(1,1,Math.max(0,w-2),Math.max(0,h-2));ctx.fillStyle='#40351c';ctx.font=`${Math.max(6,Math.min(14,w/4,h/2))}px sans-serif`;ctx.fillText(a.subtype??'PDF',3,Math.min(h-2,16));}
-    const blob=await new Promise<Blob>((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error('无法生成 PDF 批注预览')),'image/png')),resource=uid();book.resources[resource]={type:'image',mime:'image/png',name:`${a.subtype??'PDF'} annotation.png`,data:encode(new Uint8Array(await blob.arrayBuffer()))};o.resource=resource;bindNative(o,a,page,key);return o;
+    const blob=await new Promise<Blob>((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error(t('cannot_generate_pdf_annotation_preview'))),'image/png')),resource=uid();book.resources[resource]={type:'image',mime:'image/png',name:`${a.subtype??'PDF'} annotation.png`,data:encode(new Uint8Array(await blob.arrayBuffer()))};o.resource=resource;bindNative(o,a,page,key);return o;
   }finally{canvas.width=canvas.height=1;}
 }

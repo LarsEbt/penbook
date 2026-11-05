@@ -1,3 +1,4 @@
+import { t } from './i18n';
 import { App, Modal, Setting, FuzzySuggestModal, TFile } from 'obsidian';
 import { Item } from './model';
 import { tableCells, tableSize } from './table';
@@ -21,16 +22,16 @@ let lastToolAnchor:HTMLElement|null=null;
 export function rememberAnchor(anchor:HTMLElement|null){lastToolAnchor=anchor;if(!anchor)closePopover?.();}
 export function toolAnchor(){const active=document.activeElement instanceof HTMLElement?document.activeElement.closest<HTMLElement>('.pb-button'):null;return active??(lastToolAnchor?.isConnected?lastToolAnchor:null);}
 export function colorPopover(anchor:HTMLElement,value:string,apply:(color:string)=>void){
-  popover(anchor,(panel,close)=>{panel.setAttribute('aria-label','墨水颜色');let current=value;
+  popover(anchor,(panel,close)=>{panel.setAttribute('aria-label',t('ink_color'));let current=value;
     colorControl(panel,value,color=>current=color);
-    new Setting(panel).addButton(b=>b.setButtonText('取消').onClick(close)).addButton(b=>b.setButtonText('确定').setCta().onClick(()=>{apply(current);close();}));
+    new Setting(panel).addButton(b=>b.setButtonText(t('cancel')).onClick(close)).addButton(b=>b.setButtonText(t('ok')).setCta().onClick(()=>{apply(current);close();}));
   });
 }
 export function colorControl(parent:HTMLElement,value:string,change:(color:string)=>void){
   const picker=parent.createDiv('pb-color-picker'),plane=picker.createDiv('pb-color-plane'),handle=plane.createDiv('pb-color-handle');
-  plane.tabIndex=0;plane.setAttribute('role','slider');plane.setAttribute('aria-label','颜色饱和度与亮度');
-  const hue=picker.createEl('input',{cls:'pb-hue',attr:{type:'range',min:'0',max:'360',step:'1','aria-label':'色相'}});
-  const row=picker.createDiv('pb-color-value'),sample=row.createDiv('pb-color-preview'),hex=row.createEl('input',{attr:{type:'text','aria-label':'十六进制颜色',value}});
+  plane.tabIndex=0;plane.setAttribute('role','slider');plane.setAttribute('aria-label',t('color_saturation_and_brightness'));
+  const hue=picker.createEl('input',{cls:'pb-hue',attr:{type:'range',min:'0',max:'360',step:'1','aria-label':t('hue')}});
+  const row=picker.createDiv('pb-color-value'),sample=row.createDiv('pb-color-preview'),hex=row.createEl('input',{attr:{type:'text','aria-label':t('hex_color'),value}});
   let h=0,s=1,v=1;
   const read=(color:string)=>{const n=parseInt(color.slice(1),16),r=(n>>16&255)/255,g=(n>>8&255)/255,b=(n&255)/255,max=Math.max(r,g,b),min=Math.min(r,g,b),d=max-min;v=max;s=max?d/max:0;h=d?60*(max===r?((g-b)/d+6)%6:max===g?(b-r)/d+2:(r-g)/d+4):0;hue.value=String(h);};
   const update=()=>{const c=v*s,x=c*(1-Math.abs((h/60)%2-1)),m=v-c;const rgb=h<60?[c,x,0]:h<120?[x,c,0]:h<180?[0,c,x]:h<240?[0,x,c]:h<300?[x,0,c]:[c,0,x];const color='#'+rgb.map(n=>Math.round((n+m)*255).toString(16).padStart(2,'0')).join('');plane.style.backgroundColor=`hsl(${h} 100% 50%)`;handle.style.left=`${s*100}%`;handle.style.top=`${(1-v)*100}%`;sample.style.background=color;hex.value=color;plane.setAttribute('aria-valuetext',color);change(color);};
@@ -45,22 +46,22 @@ export function sizeControl(parent:HTMLElement,title:string,value:number,min:num
   const preview=control.createDiv('pb-size-preview');preview.setAttribute('aria-hidden','true');
   const sample=preview.createDiv(kind==='circle'?'pb-size-circle':'pb-size-line');
   const range=control.createEl('input',{attr:{type:'range',min:String(min),max:String(max),step:String(step),value:String(value),'aria-label':title}});
-  const update=()=>{const n=Number(range.value);sample.style.width=kind==='circle'?`${n*2}px`:'64px';sample.style.height=kind==='circle'?`${n*2}px`:`${n}px`;range.setAttribute('aria-valuetext',String(n));range.title=`${title}：${n}`;};
+  const update=()=>{const n=Number(range.value);sample.style.width=kind==='circle'?`${n*2}px`:'64px';sample.style.height=kind==='circle'?`${n*2}px`:`${n}px`;range.setAttribute('aria-valuetext',String(n));range.title=`${title}: ${n}`;};
   range.oninput=()=>{update();change(Number(range.value));};update();return control;
 }
 export function sizeDialog(app:App,title:string,value:number,min:number,max:number,step:number,kind:'circle'|'line'):Promise<number|null>{
   return new Promise(resolve=>{
-    const anchor=toolAnchor();if(anchor){let current=value,done=false;popover(anchor,(panel,close)=>{panel.addClass('pb-size-popover');panel.createEl('h3',{text:title});sizeControl(panel,title,current,min,max,step,kind,n=>current=n);new Setting(panel).addButton(b=>b.setButtonText('取消').onClick(()=>{resolve(null);close();})).addButton(b=>b.setButtonText('确定').setCta().onClick(()=>{done=true;resolve(current);close();}));const observer=new MutationObserver(()=>{if(!panel.isConnected){observer.disconnect();if(!done)resolve(null);}});observer.observe(document.body,{childList:true});});return;}
+    const anchor=toolAnchor();if(anchor){let current=value,done=false;popover(anchor,(panel,close)=>{panel.addClass('pb-size-popover');panel.createEl('h3',{text:title});sizeControl(panel,title,current,min,max,step,kind,n=>current=n);new Setting(panel).addButton(b=>b.setButtonText(t('cancel')).onClick(()=>{resolve(null);close();})).addButton(b=>b.setButtonText(t('ok')).setCta().onClick(()=>{done=true;resolve(current);close();}));const observer=new MutationObserver(()=>{if(!panel.isConnected){observer.disconnect();if(!done)resolve(null);}});observer.observe(document.body,{childList:true});});return;}
     class SizeDialog extends Modal {
       result:number|null=null;current=value;
       onOpen(){this.titleEl.setText(title);this.contentEl.addClass('pb-size-dialog');sizeControl(this.contentEl,title,this.current,min,max,step,kind,n=>this.current=n);
-        new Setting(this.contentEl).addButton(b=>b.setButtonText('取消').onClick(()=>this.close())).addButton(b=>b.setButtonText('确定').setCta().onClick(()=>{this.result=this.current;this.close();}));}
+        new Setting(this.contentEl).addButton(b=>b.setButtonText(t('cancel')).onClick(()=>this.close())).addButton(b=>b.setButtonText(t('ok')).setCta().onClick(()=>{this.result=this.current;this.close();}));}
       onClose(){resolve(this.result);this.contentEl.empty();}
     }
     new SizeDialog(app).open();
   });
 }
-export function confirmAction(app:App,title:string,message:string,confirm='确定'):Promise<boolean>{
+export function confirmAction(app:App,title:string,message:string,confirm=t('ok')):Promise<boolean>{
   return new Promise(resolve=>{
     class Confirmation extends Modal {
       confirmed=false;
@@ -68,7 +69,7 @@ export function confirmAction(app:App,title:string,message:string,confirm='确�
         this.titleEl.setText(title);
         this.contentEl.createEl('p',{text:message});
         new Setting(this.contentEl)
-          .addButton(b=>b.setButtonText('取消').onClick(()=>this.close()))
+          .addButton(b=>b.setButtonText(t('cancel')).onClick(()=>this.close()))
           .addButton(b=>b.setButtonText(confirm).setWarning().onClick(()=>{this.confirmed=true;this.close();}));
       }
       onClose(){resolve(this.confirmed);this.contentEl.empty();}
@@ -76,7 +77,7 @@ export function confirmAction(app:App,title:string,message:string,confirm='确�
     new Confirmation(app).open();
   });
 }
-export function form(app:App,title:string,fields:Field[],confirm='确定'):Promise<Record<string,string>|null> {
+export function form(app:App,title:string,fields:Field[],confirm=t('ok')):Promise<Record<string,string>|null> {
   return new Promise(resolve=>{
     const anchor=toolAnchor();if(anchor){const values=Object.fromEntries(fields.map(f=>[f.key,f.value]));let done=false;
       popover(anchor,(panel,close)=>{panel.createEl('h3',{text:title});for(const f of fields){const setting=new Setting(panel).setName(f.name);
@@ -84,7 +85,7 @@ export function form(app:App,title:string,fields:Field[],confirm='确定'):Promi
         else if(f.type==='color')colorControl(setting.controlEl,f.value,v=>values[f.key]=v);
         else if(f.type==='textarea')setting.addTextArea(t=>t.setValue(f.value).onChange(v=>values[f.key]=v));
         else setting.addText(t=>{t.inputEl.type=f.type??'text';t.setValue(f.value).onChange(v=>values[f.key]=v);});}
-        new Setting(panel).addButton(b=>b.setButtonText('取消').onClick(()=>{resolve(null);close();})).addButton(b=>b.setButtonText(confirm).setCta().onClick(()=>{done=true;resolve(values);close();}));
+        new Setting(panel).addButton(b=>b.setButtonText(t('cancel')).onClick(()=>{resolve(null);close();})).addButton(b=>b.setButtonText(confirm).setCta().onClick(()=>{done=true;resolve(values);close();}));
         const observer=new MutationObserver(()=>{if(!panel.isConnected){observer.disconnect();if(!done)resolve(null);}});observer.observe(document.body,{childList:true});});return;}
     class Dialog extends Modal {
       done=false; values=Object.fromEntries(fields.map(f=>[f.key,f.value]));
@@ -95,7 +96,7 @@ export function form(app:App,title:string,fields:Field[],confirm='确定'):Promi
           else if(f.type==='textarea')s.addTextArea(t=>t.setValue(f.value).onChange(v=>this.values[f.key]=v));
           else s.addText(t=>{t.inputEl.type=f.type??'text';t.setValue(f.value).onChange(v=>this.values[f.key]=v);});
         }
-        new Setting(this.contentEl).addButton(b=>b.setButtonText('取消').onClick(()=>this.close())).addButton(b=>b.setButtonText(confirm).setCta().onClick(()=>{this.done=true;resolve(this.values);this.close();}));
+        new Setting(this.contentEl).addButton(b=>b.setButtonText(t('cancel')).onClick(()=>this.close())).addButton(b=>b.setButtonText(confirm).setCta().onClick(()=>{this.done=true;resolve(this.values);this.close();}));
       }
       onClose(){if(!this.done)resolve(null);this.contentEl.empty();}
     }
@@ -124,18 +125,18 @@ export function editTable(app:App,table:Item,cell?:[number,number]):Promise<Pick
       result:Pick<Item,'rows'|'columns'|'cells'>|null=null;
       rows=tableSize(table).rows;columns=tableSize(table).columns;cells=tableCells(table);
       onOpen(){
-        this.titleEl.setText('编辑表格');this.modalEl.addClass('pb-table-dialog');
+        this.titleEl.setText(t('edit_table'));this.modalEl.addClass('pb-table-dialog');
         const controls=this.contentEl.createDiv(),grid=this.contentEl.createDiv('pb-table-grid');
         const draw=()=>{
           grid.empty();const tbody=grid.createEl('table').createEl('tbody');
           for(let r=0;r<this.rows;r++){const tr=tbody.createEl('tr');for(let c=0;c<this.columns;c++){
-            const input=tr.createEl('td').createEl('textarea',{attr:{'aria-label':`第 ${r+1} 行，第 ${c+1} 列`,rows:'2'}});input.value=this.cells[r]?.[c]??'';
+            const input=tr.createEl('td').createEl('textarea',{attr:{'aria-label':t('row_n_column_n',[r+1,c+1]),rows:'2'}});input.value=this.cells[r]?.[c]??'';
             input.oninput=()=>{this.cells[r]??=[];this.cells[r][c]=input.value;};
             if(cell?.[0]===r&&cell?.[1]===c)requestAnimationFrame(()=>input.focus());
           }}
         };
-        for(const [key,label,max]of [['rows','行数',50],['columns','列数',30]]as const)new Setting(controls).setName(label).addText(t=>{t.inputEl.type='number';t.inputEl.min='1';t.inputEl.max=String(max);t.setValue(String(this[key])).onChange(v=>{const n=Number(v);if(Number.isInteger(n)&&n>=1&&n<=max){this[key]=n;draw();}});});
-        draw();new Setting(this.contentEl).addButton(b=>b.setButtonText('取消').onClick(()=>this.close())).addButton(b=>b.setButtonText('保存').setCta().onClick(()=>{this.result={rows:this.rows,columns:this.columns,cells:tableCells({...table,cells:this.cells},this.rows,this.columns)};this.close();}));
+        for(const [key,label,max]of [['rows',t('rows'),50],['columns',t('columns'),30]]as const)new Setting(controls).setName(label).addText(t=>{t.inputEl.type='number';t.inputEl.min='1';t.inputEl.max=String(max);t.setValue(String(this[key])).onChange(v=>{const n=Number(v);if(Number.isInteger(n)&&n>=1&&n<=max){this[key]=n;draw();}});});
+        draw();new Setting(this.contentEl).addButton(b=>b.setButtonText(t('cancel')).onClick(()=>this.close())).addButton(b=>b.setButtonText(t('save')).setCta().onClick(()=>{this.result={rows:this.rows,columns:this.columns,cells:tableCells({...table,cells:this.cells},this.rows,this.columns)};this.close();}));
       }
       onClose(){resolve(this.result);this.contentEl.empty();}
     }

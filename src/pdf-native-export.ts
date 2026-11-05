@@ -1,3 +1,4 @@
+import { t } from './i18n';
 import { PDFArray, PDFDict, PDFDocument, PDFHexString, PDFName, PDFNumber, PDFObjectCopier, PDFPage, PDFRef, PDFStream, PDFString } from 'pdf-lib';
 import { Item, Notebook, Page, nativeTextStyle } from './model';
 import { Renderer } from './render';
@@ -39,7 +40,7 @@ export class NativeAnnotations {
     }
   }
   async add(target:PDFPage,page:Page,o:Item,renderer:Renderer){
-    const meta=o.pdfNative!,saved=this.originals.get(`${meta.resource}:${meta.id}`);if(!saved)throw new Error(`找不到原始 PDF 批注：${meta.subtype}`);
+    const meta=o.pdfNative!,saved=this.originals.get(`${meta.resource}:${meta.id}`);if(!saved)throw new Error(t('original_pdf_annotation_not_found_n',[meta.subtype]));
     const editedText=meta.baselineStyle!==undefined&&meta.baselineStyle!==nativeTextStyle(o),dict=saved.dict.clone(this.out.context),local=(x:number,y:number)=>{
       const a=o.rotation*Math.PI/180,dx=x*o.w/o.bw-o.w/2,dy=y*o.h/o.bh-o.h/2;
       return unitToPdf((o.x+o.w/2+dx*Math.cos(a)-dy*Math.sin(a))/page.width,(o.y+o.h/2+dx*Math.sin(a)+dy*Math.cos(a))/page.height,target.getCropBox(),target.getRotation().angle);
@@ -62,7 +63,7 @@ export class NativeAnnotations {
       dict.set(name('AP'),ap);
     }else if(o.resource){
       const canvas=document.createElement('canvas'),scale=Math.min(2,Math.sqrt(1_000_000/(o.bw*o.bh)));canvas.width=Math.max(1,Math.ceil(o.bw*scale));canvas.height=Math.max(1,Math.ceil(o.bh*scale));
-      try{const ctx=canvas.getContext('2d')!;ctx.scale(scale,scale);if(editedText)renderer.draw(ctx,{...o,x:0,y:0,w:o.bw,h:o.bh,rotation:0,opacity:1});else ctx.drawImage(await renderer.image(o.resource,this.book),0,0,o.bw,o.bh);const blob=await new Promise<Blob>((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error('无法导出批注外观')),'image/png')),image=await this.out.embedPng(await blob.arrayBuffer());
+      try{const ctx=canvas.getContext('2d')!;ctx.scale(scale,scale);if(editedText)renderer.draw(ctx,{...o,x:0,y:0,w:o.bw,h:o.bh,rotation:0,opacity:1});else ctx.drawImage(await renderer.image(o.resource,this.book),0,0,o.bw,o.bh);const blob=await new Promise<Blob>((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error(t('cannot_export_annotation_appearance'))),'image/png')),image=await this.out.embedPng(await blob.arrayBuffer());
         const local=(lx:number,ly:number)=>{const a=o.rotation*Math.PI/180,dx=lx*o.w/o.bw-o.w/2,dy=ly*o.h/o.bh-o.h/2;return unitToPdf((o.x+o.w/2+dx*Math.cos(a)-dy*Math.sin(a))/page.width,(o.y+o.h/2+dx*Math.sin(a)+dy*Math.cos(a))/page.height,target.getCropBox(),target.getRotation().angle);},p=local(0,o.bh),q=local(o.bw,o.bh),r=local(0,0),m=[q[0]-p[0],q[1]-p[1],r[0]-p[0],r[1]-p[1],...p],ref=this.out.context.register(this.out.context.flateStream(`${textHint}q /Layer gs ${m.map(number).join(' ')} cm /Image Do Q`,{Type:'XObject',Subtype:'Form',BBox:rect,Resources:{...(font?{Font:font}:{}),XObject:{Image:image.ref},ExtGState:{Layer:{Type:'ExtGState',ca:o.opacity,CA:o.opacity}}}}));dict.set(name('AP'),this.out.context.obj({N:ref}));
       }finally{canvas.width=canvas.height=1;}
     }

@@ -1,3 +1,4 @@
+import { t } from './i18n';
 import { getStroke } from 'perfect-freehand';
 import { Item, Page, Notebook, resourceUrl, nativeTextStyle } from './model';
 import { erasureClipPath } from './erase';
@@ -34,8 +35,8 @@ export class Renderer {
     if (!p) {
       const generation=this.generation;
       p = new Promise<HTMLImageElement>((resolve, reject) => {
-        const img = new Image(); img.onload = () => {if(generation===this.generation)this.loadedImages.set(key,img,img.naturalWidth*img.naturalHeight*4);resolve(img);}; img.onerror = () => reject(new Error('无法加载图片'));
-        const r = book.resources[key]; if (!r) { reject(new Error('图片资源缺失')); return; } img.src = resourceUrl(r);
+        const img = new Image(); img.onload = () => {if(generation===this.generation)this.loadedImages.set(key,img,img.naturalWidth*img.naturalHeight*4);resolve(img);}; img.onerror = () => reject(new Error(t('cannot_load_image')));
+        const r = book.resources[key]; if (!r) { reject(new Error(t('image_resource_missing'))); return; } img.src = resourceUrl(r);
       }).finally(()=>{if(this.images.get(key)===p)this.images.delete(key);}); this.images.set(key, p);
     }
     return p;
@@ -61,13 +62,13 @@ export class Renderer {
       for (let i=0;i<=7;i++) { ctx.moveTo(s+i*cell,s*3); ctx.lineTo(s+i*cell,p.height-s); }
       for (let i=0;i<=6;i++) { const y = s*3 + (p.height-s*4)*i/6; ctx.moveTo(s,y); ctx.lineTo(p.width-s,y); }
       ctx.save(); ctx.font = '14px sans-serif'; ctx.fillStyle = '#64748b';
-      ['一','二','三','四','五','六','日'].forEach((v,i)=>ctx.fillText(v,s+i*cell+10,s*2)); ctx.restore();
+      [t('mo'),t('tu'),t('we'),t('th'),t('fr'),t('sa'),t('su')].forEach((v,i)=>ctx.fillText(v,s+i*cell+10,s*2)); ctx.restore();
     }
     if(['tasks','swot','kanban','finance'].includes(p.paper)){
       const columns=p.paper==='swot'?2:p.paper==='kanban'?3:p.paper==='finance'?4:2,rows=p.paper==='swot'?2:p.paper==='kanban'?1:12;
       for(let i=0;i<=columns;i++){const x=s+(p.width-s*2)*i/columns;ctx.moveTo(x,s*3);ctx.lineTo(x,p.height-s);}
       for(let i=0;i<=rows;i++){const y=s*3+(p.height-s*4)*i/rows;ctx.moveTo(s,y);ctx.lineTo(p.width-s,y);}
-      ctx.save();ctx.font='16px sans-serif';ctx.fillStyle='#64748b';const labels=p.paper==='swot'?['优势','劣势']:p.paper==='kanban'?['待办','进行中','已完成']:p.paper==='finance'?['日期','项目','收入','支出']:['任务','状态'];labels.forEach((t,i)=>ctx.fillText(t,s+(p.width-s*2)*i/columns+12,s*2));ctx.restore();
+      ctx.save();ctx.font='16px sans-serif';ctx.fillStyle='#64748b';const labels=p.paper==='swot'?[t('strengths'),t('weaknesses')]:p.paper==='kanban'?[t('to_do'),t('doing'),t('done_2')]:p.paper==='finance'?[t('date'),t('item'),t('income'),t('expense')]:[t('task'),t('status')];labels.forEach((t,i)=>ctx.fillText(t,s+(p.width-s*2)*i/columns+12,s*2));ctx.restore();
     }
     ctx.stroke();
   }

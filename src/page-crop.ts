@@ -1,6 +1,7 @@
+import { t } from './i18n';
 import { Page } from './model';
 export function cropPage(page:Page,x:number,y:number,w:number,h:number){
-  if(![x,y,w,h].every(Number.isFinite)||x<0||y<0||w<10||h<10||x+w>page.width+.001||y+h>page.height+.001)throw new Error('裁切区域必须位于页面内，宽高至少为 10。');
+  if(![x,y,w,h].every(Number.isFinite)||x<0||y<0||w<10||h<10||x+w>page.width+.001||y+h>page.height+.001)throw new Error(t('the_crop_area_must_lie_within_the_page_a'));
   const previous=page.backgroundCrop??{x:0,y:0,w:1,h:1};
   page.backgroundCrop={x:previous.x+x/page.width*previous.w,y:previous.y+y/page.height*previous.h,w:w/page.width*previous.w,h:h/page.height*previous.h};
   for(const o of page.items){o.x-=x;o.y-=y;}

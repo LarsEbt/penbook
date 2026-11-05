@@ -1,3 +1,4 @@
+import { t } from './i18n';
 import * as Clipper from 'clipper-lib';
 export type Pair=[number,number];
 export type MultiPolygon=Pair[][][];
@@ -11,7 +12,7 @@ function operation(type:Clipper.ClipType,subject:MultiPolygon,clips:MultiPolygon
   const engine=new Clipper.Clipper(),tree=new Clipper.PolyTree();engine.StrictlySimple=true;
   engine.AddPaths(paths(subject),Clipper.PolyType.ptSubject,true);
   for(const clip of clips)engine.AddPaths(paths(clip),Clipper.PolyType.ptClip,true);
-  if(!engine.Execute(type,tree,Clipper.PolyFillType.pftNonZero,Clipper.PolyFillType.pftNonZero))throw new Error('无法完成笔迹裁剪');
+  if(!engine.Execute(type,tree,Clipper.PolyFillType.pftNonZero,Clipper.PolyFillType.pftNonZero))throw new Error(t('cannot_complete_stroke_clipping'));
   return Clipper.JS.PolyTreeToExPolygons(tree).map(polygon=>[polygon.outer,...polygon.holes].map(ring=>ring.map(p=>[p.X/SCALE,p.Y/SCALE] as Pair)));
 }
 export const difference=(subject:MultiPolygon,...clips:MultiPolygon[])=>operation(Clipper.ClipType.ctDifference,subject,clips);

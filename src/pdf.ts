@@ -1,3 +1,4 @@
+import { t } from './i18n';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 import pdfWorkerSource from 'pdfjs-dist/legacy/build/pdf.worker.mjs';
 import { PDFDocument, PDFPage, PDFName, PDFRef, PDFDict, degrees } from 'pdf-lib';
@@ -7,7 +8,7 @@ import { BudgetCache, RenderQueue } from './resources';
 import { addObjectAnnotation, applyPdfCrop, writePdfNavigation } from './pdf-annotations';
 import { ANNOTATION_ATTACHMENT, AnnotationArchive } from './pdf-import';
 import { NativeAnnotations } from './pdf-native-export';
-async function pngBytes(canvas:HTMLCanvasElement){try{const blob=await new Promise<Blob>((resolve,reject)=>canvas.toBlob(blob=>blob?resolve(blob):reject(new Error('无法编码页面图片')),'image/png'));return new Uint8Array(await blob.arrayBuffer());}finally{canvas.width=canvas.height=1;}}
+async function pngBytes(canvas:HTMLCanvasElement){try{const blob=await new Promise<Blob>((resolve,reject)=>canvas.toBlob(blob=>blob?resolve(blob):reject(new Error(t('cannot_encode_page_image'))),'image/png'));return new Uint8Array(await blob.arrayBuffer());}finally{canvas.width=canvas.height=1;}}
 
 export class PDFs {
   docs = new Map<string, Promise<pdfjs.PDFDocumentProxy>>();
@@ -31,7 +32,7 @@ export class PDFs {
   document(key: string, book: Notebook) {
     let p = this.docs.get(key);
     if (!p) {
-      const r=book.resources[key]; if(!r || r.type!=='pdf') throw new Error('PDF 资源缺失');
+      const r=book.resources[key]; if(!r || r.type!=='pdf') throw new Error(t('pdf_resource_missing'));
       // A blob URL gives the worker the same app:// origin without modifying
       // the host window's pdfjsWorker global used by Obsidian's PDF reader.
       if(!this.worker){
