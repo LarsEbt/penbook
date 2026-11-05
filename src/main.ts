@@ -1,5 +1,5 @@
-import { t } from './i18n';
-import { Plugin, PluginSettingTab, Setting, Notice, TFile, normalizePath, Menu, Modal } from 'obsidian';
+import { t, LanguageSetting, localeFor, setLocale } from './i18n';
+import { Command, Plugin, PluginSettingTab, Setting, Notice, TFile, normalizePath, Menu, Modal } from 'obsidian';
 import { newBook, newPage, Notebook, Paper, Pen, InkProfile, clone, parseBook } from './model';
 import { notebookWizard, paperNames, coverPreview } from './templates';
 import { PRESET_COLORS } from './palette';
@@ -13,16 +13,29 @@ import { SelectionClipboard } from './selection-clipboard';
 
 export interface Preferences {
   folder:string; paper:Paper; penColor:string; penWidth:number; pressure:number; fingerInk:boolean;
-  leftHanded:boolean; toolbarBottom:boolean; exportFolder:string; templateFolder:string; exportScale:number; eraser:'stroke'|'pixel';
+  leftHanded:boolean; toolbarBottom:boolean; uiLanguage:LanguageSetting; exportFolder:string; templateFolder:string; exportScale:number; eraser:'stroke'|'pixel';
   customColors:string[];presetColors:string[];
   colorHistory:string[]; inkProfiles:Partial<Record<Pen,InkProfile>>; eraserPrecision:'fine'|'standard'; eraserOnly:'all'|'highlighter'|'tape'; eraserAutoPrevious:boolean;
   penEnabled:boolean; scrollDirection:'vertical'|'horizontal'; showResolved:boolean;
 }
-export const DEFAULTS:Preferences={folder:'',paper:'ruled',penColor:'#000000',penWidth:3,pressure:1,fingerInk:false,leftHanded:false,toolbarBottom:false,exportFolder:'',templateFolder:'',exportScale:1.5,eraser:'stroke',customColors:[],presetColors:PRESET_COLORS,colorHistory:[],inkProfiles:{},eraserPrecision:'standard',eraserOnly:'all',eraserAutoPrevious:false,penEnabled:true,scrollDirection:'vertical',showResolved:false};
+export const DEFAULTS:Preferences={folder:'',paper:'ruled',penColor:'#000000',penWidth:3,pressure:1,fingerInk:false,leftHanded:false,toolbarBottom:false,uiLanguage:'auto',exportFolder:'',templateFolder:'',exportScale:1.5,eraser:'stroke',customColors:[],presetColors:PRESET_COLORS,colorHistory:[],inkProfiles:{},eraserPrecision:'standard',eraserOnly:'all',eraserAutoPrevious:false,penEnabled:true,scrollDirection:'vertical',showResolved:false};
 
 export default class PenbookPlugin extends Plugin {
   settings:Preferences={...DEFAULTS};
   selectionClipboard:SelectionClipboard|null=null;
+  private ribbon:HTMLElement|null=null;
+  private commandLabels:{command:{name:string},label:()=>string}[]=[];
+  private labelledCommand(command:Omit<Command,'name'>,label:()=>string){
+    // addCommand keeps the object it is given, so renaming it later updates the command palette and hotkey list without a reload.
+    const added=this.addCommand({...command,name:label()});this.commandLabels.push({command:added,label});return added;
+  }
+  /** Re-apply the UI language everywhere that is not rebuilt on demand: command names, ribbon tooltip, open views. */
+  applyLanguage(){
+    setLocale(localeFor(this.settings.uiLanguage));
+    for(const {command,label} of this.commandLabels)command.name=label();
+    this.ribbon?.setAttribute('aria-label',t('new_handwriting_notebook'));
+    for(const leaf of this.app.workspace.getLeavesOfType(VIEW_TYPE))if(leaf.view instanceof PenbookView)leaf.view.render(true);
+  }
   /** New installs get localized folder names; vaults that already use the original Chinese folders keep them. */
   private async initFolders(saved:Partial<Preferences>){
     const {settings,changed}=await resolveFolders(saved,path=>this.app.vault.adapter.exists(normalizePath(path)),{folder:t('default_folder'),exportFolder:t('export_subfolder'),templateFolder:t('template_subfolder')});
@@ -34,16 +47,17 @@ export default class PenbookPlugin extends Plugin {
     this.register(installTooltips());
     const saved=(await this.loadData()??{}) as Partial<Preferences>;
     this.settings={...DEFAULTS,...saved};
+    setLocale(localeFor(this.settings.uiLanguage));
     await this.initFolders(saved);
     this.settings.presetColors=[...new Set([...this.settings.presetColors,...this.settings.customColors])];this.settings.inkProfiles={...this.settings.inkProfiles};this.settings.colorHistory=[...this.settings.colorHistory];
     this.registerView(VIEW_TYPE,leaf=>new PenbookView(leaf,this));this.registerExtensions(['penbook'],VIEW_TYPE);
-    this.addRibbonIcon('pb-pen',t('new_handwriting_notebook'),()=>void this.createNotebook());
-    this.addCommand({id:'new-notebook',name:t('new_handwriting_notebook'),callback:()=>void this.createNotebook()});
-    this.addCommand({id:'library',name:t('notebook_library'),callback:()=>new Library(this).open()});
-    this.addCommand({id:'import-pdf',name:t('create_notebook_from_pdf'),callback:()=>void this.fromPdf()});
+    this.ribbon=this.addRibbonIcon('pb-pen',t('new_handwriting_notebook'),()=>void this.createNotebook());
+    this.labelledCommand({id:'new-notebook',callback:()=>void this.createNotebook()},()=>t('new_handwriting_notebook'));
+    this.labelledCommand({id:'library',callback:()=>new Library(this).open()},()=>t('notebook_library'));
+    this.labelledCommand({id:'import-pdf',callback:()=>void this.fromPdf()},()=>t('create_notebook_from_pdf'));
     for(const [id,labelKey] of SHORTCUTS){
-      const hint=shortcutHint(id),label=t(labelKey),name=hint?`${label} (${hint})`:label;
-      this.addCommand({id,name,checkCallback:checking=>{const v=this.app.workspace.getActiveViewOfType(PenbookView),target=document.activeElement?.closest('.prompt')?null:document.activeElement;if(!v||!v.canShortcut(id,target))return false;if(!checking)void v.executeShortcut(id,false,target).catch(error=>{console.error('Penbook',error);new Notice(String(error));});return true;}});
+      const hint=shortcutHint(id),label=()=>hint?`${t(labelKey)} (${hint})`:t(labelKey);
+      this.labelledCommand({id,checkCallback:checking=>{const v=this.app.workspace.getActiveViewOfType(PenbookView),target=document.activeElement?.closest('.prompt')?null:document.activeElement;if(!v||!v.canShortcut(id,target))return false;if(!checking)void v.executeShortcut(id,false,target).catch(error=>{console.error('Penbook',error);new Notice(String(error));});return true;}},label);
     }
     this.registerEvent(this.app.workspace.on('file-menu',(menu,file)=>{
       if(file instanceof TFile && file.extension==='pdf')menu.addItem(i=>i.setTitle(t('annotate_pdf_with_penbook')).setIcon('pb-pen').onClick(()=>void this.fromPdf(file)));
@@ -100,6 +114,7 @@ class Library extends Modal {
 class PenbookSettings extends PluginSettingTab {
   constructor(private plugin:PenbookPlugin){super(plugin.app,plugin);}
   display(){const el=this.containerEl;el.empty();new Setting(el).setName(t('penbook_handwriting')).setHeading();
+    new Setting(el).setName(t('language')).setDesc(t('language_desc')).addDropdown(d=>d.addOptions({auto:t('language_auto'),en:'English',de:'Deutsch'}).setValue(this.plugin.settings.uiLanguage).onChange(async v=>{this.plugin.settings.uiLanguage=v as LanguageSetting;await this.plugin.saveSettings();this.plugin.applyLanguage();this.display();}));
     new Setting(el).setName(t('new_notebook_folder')).setDesc(t('folder_desc')).addText(x=>x.setValue(this.plugin.settings.folder).onChange(async v=>{this.plugin.settings.folder=normalizePath(v||t('default_folder'));await this.plugin.saveSettings();}));
     new Setting(el).setName(t('export_folder_name')).setDesc(t('export_folder_desc')).addText(x=>x.setValue(this.plugin.settings.exportFolder).onChange(async v=>{this.plugin.settings.exportFolder=normalizePath(v||t('export_subfolder'));await this.plugin.saveSettings();}));
     new Setting(el).setName(t('template_folder_name')).setDesc(t('template_folder_desc')).addText(x=>x.setValue(this.plugin.settings.templateFolder).onChange(async v=>{this.plugin.settings.templateFolder=normalizePath(v||t('template_subfolder'));await this.plugin.saveSettings();}));
